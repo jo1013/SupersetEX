@@ -1,0 +1,171 @@
+x-superset-image: &superset-image apache/superset:latest-dev
+x-superset-user: &superset-user root
+x-superset-depends-on: &superset-depends-on
+  - db
+  - redis
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker:/app/docker
+  - ./superset:/app/superset
+  - ./superset-frontend:/app/superset-frontend
+  - superset_home:/app/superset_home
+  - ./tests:/app/tests
+
+
+
+version: "3.7" # 파일 규격 버전
+# docker-compose 버전으로 버전3부터는 links 옵션을 넣지않아도 docker-compose내의 Container는 연결된다.
+services: # 이 항목 밑에 실행하려는 컨테이너 들을 정의 ( 컴포즈에서 컨테이너 : 서비스 )
+
+
+db:
+    env_file: docker/.env
+    image: postgres:10
+    container_name: superset_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5433"
+    volumes:
+      - db_home:/var/lib/postgresql/data
+
+  superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    user: *superset-user
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+
+  superset-websocket:
+    container_name: superset_websocket
+    build: ./superset-websocket
+    image: superset-websocket
+    ports:
+      - 8080:8080
+    depends_on:
+      - redis
+    # Mount everything in superset-websocket into container and
+    # then exclude node_modules and dist with bogus volume mount.
+    # This is necessary because host and container need to have
+    # their own, separate versions of these files. .dockerignore
+    # does not seem to work when starting the service through
+    # docker-compose.
+    #
+    # For example, node_modules may contain libs with native bindings.
+    # Those bindings need to be compiled for each OS and the container
+    # OS is not necessarily the same as host OS.
+    volumes:
+      - ./superset-websocket:/home/superset-websocket
+      - /home/superset-websocket/node_modules
+      - /home/superset-websocket/dist
+    environment:
+      - PORT=8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_SSL=false
+
+  superset-init:
+    image: *superset-image
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file: docker/.env
+    depends_on: *superset-depends-on
+    user: *superset-user
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+
+  superset-node:
+    image: node:14
+    container_name: superset_node
+    command: ["/app/docker/docker-frontend.sh"]
+    env_file: docker/.env
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+
+  superset-worker:
+    image: *superset-image
+    container_name: superset_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file: docker/.env
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    user: *superset-user
+    volumes: *superset-volumes
+
+  superset-worker-beat:
+    image: *superset-image
+    container_name: superset_worker_beat
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    env_file: docker/.env
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    user: *superset-user
+    volumes: *superset-volumes
+
+  superset-tests-worker:
+    image: *superset-image
+    container_name: superset_tests_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file: docker/.env
+    environment:
+      DATABASE_HOST: localhost
+      DATABASE_DB: test
+      REDIS_CELERY_DB: 2
+      REDIS_RESULTS_DB: 3
+      REDIS_HOST: localhost
+    network_mode: host
+    depends_on: *superset-depends-on
+    user: *superset-user
+    volumes: *superset-volumes
+
+volumes:
+  superset_home:
+    external: false
+  db_home:
+    external: false
+  redis:
+    external: false
+  db2: # 서비스 명
+    image: mysql:8.0.17 # 사용할 이미지
+    restart: always
+    command: --lower_case_table_names=1
+    container_name: db2 # 컨테이너 이름 설정
+    ports:
+      - "3306:3306" # 접근 포트 설정 (컨테이너 외부:컨테이너 내부)  <- 컨테이너 내부는 무조건 3306
+   # env_file: .env
+    environment: # -e 옵션
+      - MYSQL_DATABASE=testdb
+      - MYSQL_ROOT_PASSWORD=root # MYSQL 패스워드 설정 옵션
+      - TZ=Asia/Seoul
+
+    command: # 명령어 실행
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ~/workspace/pyspark/db:/var/lib/mysql # -v 옵션 (다렉토리 마운트 설정)
+#    networks:
+ #     - backend
+    restart: always
+
+
+  py_spark:
+    image : jo1013/pyspark:0.05
+    restart : always
+    container_name : py_spark
+
+    ports :
+      - "8888:8888"
+      - "8000:8000"
+    volumes:
+      - ~/workspace:/home
+    stdin_open: true
+    tty: true
+
+

@@ -1,0 +1,139 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+x-superset-image: &superset-image apache/superset:latest-dev
+x-superset-depends-on: &superset-depends-on
+  - db
+  - redis
+x-superset-volumes: &superset-volumes
+  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  - ./docker:/app/docker
+  - superset_home:/app/superset_home
+
+version: "3.7"
+services:
+  redis:
+    image: redis:latest
+    container_name: superset_cache
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
+  db:
+    env_file: docker/.env
+    image: postgres:10
+    container_name: superset_db
+    restart: unless-stopped
+    volumes:
+      - db_home:/var/lib/postgresql/data
+
+  superset:
+    env_file: docker/.env-non-dev
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    user: "root"
+    restart: unless-stopped
+    ports:
+      - 8088:8088
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+
+  superset-init:
+    image: *superset-image
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    env_file: docker/.env-non-dev
+    depends_on: *superset-depends-on
+    user: "root"
+    volumes: *superset-volumes
+
+  superset-worker:
+    image: *superset-image
+    container_name: superset_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    env_file: docker/.env-non-dev
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    user: "root"
+    volumes: *superset-volumes
+
+  superset-worker-beat:
+    image: *superset-image
+    container_name: superset_worker_beat
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    env_file: docker/.env-non-dev
+    restart: unless-stopped
+    depends_on: *superset-depends-on
+    user: "root"
+    volumes: *superset-volumes
+
+
+
+    
+  #   db2: # 서비스 명
+  #     image: mysql:8.0.17 # 사용할 이미지
+  #     restart: always
+  #     command: --lower_case_table_names=1
+  #     container_name: db2 # 컨테이너 이름 설정
+  #     ports:
+  #       - "3306:3306" # 접근 포트 설정 (컨테이너 외부:컨테이너 내부)  <- 컨테이너 내부는 무조건 3306
+  #   # env_file: .env
+  #     environment: # -e 옵션
+  #       - MYSQL_DATABASE=testdb
+  #       - MYSQL_ROOT_PASSWORD=root # MYSQL 패스워드 설정 옵션
+  #       - TZ=Asia/Seoul
+
+  #     command: # 명령어 실행
+  #       - --character-set-server=utf8mb4
+  #       - --collation-server=utf8mb4_unicode_ci
+  #     volumes:
+  #       - ~/workspace/pyspark/db:/var/lib/mysql # -v 옵션 (다렉토리 마운트 설정)
+  # #    networks:
+  # #     - backend
+  #     restart: always
+
+
+  # py_spark:
+  #   image : jo1013/pyspark:0.05
+  #   restart : always
+  #   container_name : py_spark
+
+  #   ports :
+  #     - "8888:8888"
+  #     - "8000:8000"
+  #   volumes:
+  #     - ~/workspace:/home
+  #   stdin_open: true
+  #   tty: true
+
+
+
+
+
+
+
+
+
+
+
+volumes:
+  superset_home:
+    external: false
+  db_home:
+    external: false
+  redis:
+    external: false
