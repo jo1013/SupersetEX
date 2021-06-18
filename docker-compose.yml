@@ -150,8 +150,8 @@ volumes:
       - --collation-server=utf8mb4_unicode_ci
     volumes:
       - ~/workspace/pyspark/db:/var/lib/mysql # -v 옵션 (다렉토리 마운트 설정)
-#    networks:
- #     - backend
+    networks:
+      - backend
     restart: always
 
 
