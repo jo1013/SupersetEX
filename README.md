@@ -36,7 +36,10 @@ key 추가할 때  json으로 뽑은 값(보안 조심)
 ```
 $ docker ps  # 여기서 superset 이미지 로들어간다.
 $ docker exec -it [container id] bash
+$ docker push [continaer name or id] [image][tag]
 $ pip install pybigquery 
 ```
 
 * 설치 후 꼭 커밋하고 다시 켜준다 . flask api 기반으로 이루어졌기 때문에 웹이 동작중에 설치하면 적용되지않는다.
+
+
