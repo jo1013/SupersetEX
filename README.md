@@ -11,3 +11,4 @@ $ jupyter notebook --allow-root --ip=0.0.0.0 --port=8888
 ```
 $ docker-compose -f docker-compose-non-dev.yml up
 ```
+$ git clone github.com/jo1013.git
