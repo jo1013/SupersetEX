@@ -1,12 +1,15 @@
 # SupersetEX
 
+# Apache - 2.0 라이센스를 갖고 있는 
 
 # 오픈소스 시각화 툴 이다.  python으로 제작됌
 
 
 
 
-## 아래의 명령어를 입력시에  superset, postgres, mysql, pyspark container 실행
+## 아래의 명령어를 입력시에  
+## superset, postgres, mysql, pyspark container 실행
+
 
 ```
 $ docker-compose -f docker-compose-non-dev.yml up
@@ -35,9 +38,9 @@ key 추가할 때  json으로 뽑은 값(보안 조심)
 
 
 ```
-<<<<<<< HEAD
 $ docker-compose -f docker-compose-non-dev.yml up
 ```
+
 $ git clone github.com/jo1013.git
 =======
 $ docker ps  # 여기서 superset 이미지 로들어간다.
