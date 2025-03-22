@@ -1,55 +1,52 @@
 # SupersetEX
 
-# Apache - 2.0 라이센스를 갖고 있는 
+## 개요
+SupersetEX는 Apache-2.0 라이센스를 갖고 있는 오픈소스 시각화 툴입니다. Python으로 개발되었으며, 데이터 시각화 및 분석을 위한 강력한 인터페이스를 제공합니다.
 
-# 오픈소스 시각화 툴 이다.  python으로 제작됌
+## 실행 방법
+아래 명령어를 실행하면 superset, postgres, mysql, pyspark 컨테이너가 함께 실행됩니다:
 
-
-
-
-## 아래의 명령어를 입력시에  
-## superset, postgres, mysql, pyspark container 실행
-
-
-```
-$ docker-compose -f docker-compose-non-dev.yml up
+```bash
+docker-compose -f docker-compose-non-dev.yml up
 ```
 
+## GCP BigQuery 연결 방법
 
+### 1. GCP 서비스 계정 설정
+1. GCP IAM 및 관리자(IAM Admin)에 접속합니다
+2. 서비스 계정 ID를 생성한 후 키를 생성합니다 (BigQuery 뷰어 권한 정도면 충분합니다)
 
-## GCP 연결방법
+### 2. Superset에서 BigQuery 연결 설정
+1. Superset 웹 인터페이스에서 데이터베이스 생성 메뉴로 이동합니다
+2. SQLALCHEMY URI에 `bigquery://[BigQueryID값]`을 입력합니다
+3. ADVANCED 탭의 SECURE EXTRA 항목에 다음과 같이 입력합니다:
+   ```json
+   {
+     "credentials_info": {
+       // GCP 서비스 계정 키 JSON 내용을 여기에 붙여넣기 (보안 주의)
+     }
+   }
+   ```
 
-1. gcp  iam 및 관리자(i am admin)에 들어가서  서비스 계정  아이디 생성 후 키생성 (bigquery 뷰어 정도면됌 수정기능X )
-2.  superset 웹 에서 데이터베이스 생성 SQLALCHEMY URI에 bigquery://[BigQueryID값] 입력
+## BigQuery 연결 엔진 설치
 
+기본 Superset 이미지에는 BigQuery 로드 엔진이 포함되어 있지 않아 별도 설치가 필요합니다:
 
+```bash
+# 저장소 복제
+git clone github.com/jo1013.git
 
-ADVANCED탭에서 Security
-SECURE EXTRA
+# 실행 중인 컨테이너 확인
+docker ps
 
-{
-"credentials_info": 
+# Superset 컨테이너에 접속
+docker exec -it [container id] bash
 
-key 추가할 때  json으로 뽑은 값(보안 조심) 
-}
+# BigQuery 연결 라이브러리 설치
+pip install pybigquery
 
-## 기본  super-set 이미지에  bigquery load 엔진 필요
-
-
-
+# 변경사항 저장
+docker commit [container id] [image]:[tag]
 ```
-$ docker-compose -f docker-compose-non-dev.yml up
-```
 
-$ git clone github.com/jo1013.git
-=======
-$ docker ps  # 여기서 superset 이미지 로들어간다.
-$ docker exec -it [container id] bash
-$ docker push [continaer name or id] [image][tag]
-$ pip install pybigquery 
-```
-
-* 설치 후 꼭 커밋하고 다시 켜준다 . flask api 기반으로 이루어졌기 때문에 웹이 동작중에 설치하면 적용되지않는다.
-
-
->>>>>>> 5716c39fc591aec26c738d37161de2a2e270d96f
+> **중요**: 라이브러리 설치 후 반드시 컨테이너를 커밋하고 다시 시작해야 합니다. Superset은 Flask API 기반으로 동작하기 때문에 웹 서비스 실행 중에 설치한 라이브러리는 즉시 적용되지 않습니다.
